@@ -1,37 +1,55 @@
 
 pipeline {
     agent any
-
+    environment {
+        DOCKER_IMAGE_NAME = "daksha006/train-schedule"
+    }
     stages {
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Building..'
-                sh 'docker build -t javatestapp:v3 .'
-                sh 'kubectl create deployment java --image=javatestapp:v3'
-              sh 'sudo kubectl expose deployment java --type=LoadBalancer --port=8080'
+                script {
+                    app = docker.build(DOCKER_IMAGE_NAME)
+                    app.inside {
+                        sh 'echo Hello, World!'
+                    }
+                }
             }
         }
-        stage('Test') {
+        stage('Push Docker Image') {
             steps {
-                echo 'Testing..'
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_login') {
+                        app.push("${env.BUILD_NUMBER}")
+                        app.push("latest")
+                       }
+                }
             }
         }
-        stage('Deploy') {
+        stage('DeployToProduction') {
             steps {
-                echo 'Deploying....'
+                input 'Deploy to Dev Environment?'
+                milestone(1)
+                kubernetesDeploy(
+                    credentialsType: 'KubeConfig',
+                    kubeConfig: [path: '/var/lib/jenkins/.kube/config'],
+                    configs: 'train-schedule-kube.yml',
+                )
             }
         }
 
         stage('RollBack') {
           steps {
              script {
-            
-               
-                sh 'kubectl rollout history deployment/java'
-                sh 'kubectl rollout undo deployment/java --to-revision=1'
+
+                sh 'kubectl set image deployment/test test=test:3 --record=true'
+                sh 'kubectl rollout history deployment/test'
+                sh 'kubectl rollout undo deployment/test --to-revision=14'
          }
+       }
+     }
+
     }
- }
 }
-}
+                                                                                                                            53,1          Bot
+
 
