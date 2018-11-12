@@ -44,7 +44,7 @@ pipeline {
                 sh 'kubectl rollout undo deployment/test'
                 sh 'kubectl set image deployment/test test=test:3 --record=true'
                 sh 'kubectl rollout history deployment/test'
-                sh 'kubectl rollout undo deployment/test'
+                sh 'kubectl rollout undo deployment/test --to-revision=14'
          }
        }
      }
