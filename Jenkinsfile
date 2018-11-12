@@ -26,7 +26,7 @@ pipeline {
           steps {
              script {
             
-                sh 'kubectl set image deployment/test java=java:3 --record=true'
+                sh 'kubectl set image deployment/java java=java:3 --record=true'
                 sh 'kubectl rollout history deployment/java'
                 sh 'kubectl rollout undo deployment/java --to-revision=14'
          }
