@@ -28,7 +28,7 @@ pipeline {
             
                
                 sh 'kubectl rollout history deployment/java'
-                sh 'kubectl rollout undo deployment/java --to-revision=14'
+                sh 'kubectl rollout undo deployment/java --to-revision=1'
          }
     }
  }
