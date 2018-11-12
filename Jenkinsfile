@@ -1,26 +1,41 @@
 
-
 pipeline {
     agent any
-
+    environment {
+        DOCKER_IMAGE_NAME = "daksha006/train-schedule"
+    }
     stages {
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Building..'
-                sh 'docker build -t javatestapp1:v2 .'
-                sh 'kubectl create deployment testing --image=javatestapp1:v2'
-              sh 'sudo kubectl expose deployment testing --type=LoadBalancer --port=8080'
+                script {
+                    app = docker.build(DOCKER_IMAGE_NAME)
+                    app.inside {
+                        sh 'echo Hello, World!'
+                    }
+                }
             }
         }
-        stage('Test') {
+        stage('Push Docker Image') {
             steps {
-                echo 'Testing..'
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_login') {
+                        app.push("${env.BUILD_NUMBER}")
+                        app.push("latest")
+                       }
+                }
             }
         }
-        stage('Deploy') {
+        stage('DeployToProduction') {
             steps {
-                echo 'Deploying....'
+                input 'Deploy to Dev Environment?'
+                milestone(1)
+                kubernetesDeploy(
+                    credentialsType: 'KubeConfig',
+                    kubeConfig: [path: '/var/lib/jenkins/.kube/config'],
+                    configs: 'train-schedule-kube.yml',
+                    enableConfigSubstitution: true
+                )
             }
         }
-  }
+    }
 }
